@@ -1,5 +1,4 @@
 from flask_mail import Mail, Message
-from flask_vercel import Vercel
 from itsdangerous import URLSafeTimedSerializer
 from flask import Flask, render_template, redirect, url_for, flash, session, send_from_directory, request
 from config import Config
@@ -15,8 +14,9 @@ app = Flask(__name__)
 app.config.from_object(Config)
 mail = Mail(app)
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-vercel_app = Vercel(app)
 db = SQLAlchemy(app)
+vercel_app = Vercel(app)
+
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -59,6 +59,7 @@ class Follow(db.Model):
 with app.app_context():
     db.create_all()
 
+
 class SignUpForm(FlaskForm):
     fname = StringField('First name', validators=[DataRequired()])
     sname = StringField('Last name', validators=[DataRequired()])
@@ -87,6 +88,7 @@ class SignInForm(FlaskForm):
     pswd = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Sign In')
 
+
 class PostForm(FlaskForm):
     picture = FileField('Picture', validators=[FileAllowed(['jpg', 'png', 'jpeg', 'gif'], 'Images only!'), Optional()])
     title = StringField('Title', validators=[DataRequired()])
@@ -99,11 +101,11 @@ class ForgotPasswordForm(FlaskForm):
     email = EmailField('Email', validators=[DataRequired(), Email()])
     submit = SubmitField('Reset Password')
 
+
 class ResetPasswordForm(FlaskForm):
     password = PasswordField('New Password', validators=[DataRequired()])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
     submit = SubmitField('Reset Password')
-
 
 
 @app.route('/user_files/<filename>')
@@ -111,6 +113,7 @@ def user_files(filename):
     if filename is None:
         return redirect(url_for('main'))
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
 
 @app.route('/')
 def main():
@@ -122,7 +125,8 @@ def main():
         follow_status = {}
         for author in users:
             # Check if the current user is following this author
-            is_following = db.session.query(Follow).filter_by(follower_id=current_user.id, followed_id=author.id).first() is not None
+            is_following = db.session.query(Follow).filter_by(follower_id=current_user.id,
+                                                              followed_id=author.id).first() is not None
             follow_status[author.id] = is_following
 
         return render_template('index.html',
@@ -132,7 +136,8 @@ def main():
                                follow_status=follow_status
                                )
     else:
-         return redirect(url_for('sign_in'))
+        return redirect(url_for('sign_in'))
+
 
 @app.route('/sign-up', methods=['GET', 'POST'])
 def sign_up():
@@ -177,10 +182,12 @@ def sign_in():
 
     return render_template('signIn.html', form=form)
 
+
 @app.route('/sign-out')
 def sign_out():
     session.pop('user', None)
     return redirect(url_for('main'))
+
 
 @app.route('/edit-profile', methods=['GET', 'POST'])
 def edit_profile():
@@ -205,6 +212,7 @@ def edit_profile():
     else:
         return redirect(url_for('sign_in'))
 
+
 @app.route('/create-post', methods=['GET', 'POST'])
 def create_post():
     if 'user' in session:
@@ -215,7 +223,6 @@ def create_post():
             content = form.content.data
             datetime = form.datetime.data
             user_id = session['user']
-
 
             print(f"Form Data -> Title: {title}, Content: {content}, Date: {datetime}, User ID: {user_id}")
 
@@ -233,7 +240,8 @@ def create_post():
                 if picture:
                     random_filename = secrets.token_hex(12) + os.path.splitext(picture.filename)[1]
                     picture.save(os.path.join(app.config['UPLOAD_FOLDER'], random_filename))
-                    post = Post(title=title, content=content, user_id=user_id, datetime=datetime, picture=random_filename)
+                    post = Post(title=title, content=content, user_id=user_id, datetime=datetime,
+                                picture=random_filename)
                     db.session.add(post)
                     db.session.commit()
                 else:
@@ -248,6 +256,7 @@ def create_post():
         return render_template('createPost.html', form=form)
     else:
         return redirect(url_for('sign_in'))
+
 
 @app.route('/delete-post/<int:id>')
 def delete_post(id):
@@ -264,7 +273,6 @@ def delete_post(id):
         return redirect(url_for('main'))
     else:
         return redirect(url_for('sign_in'))
-
 
 
 @app.route('/edit-post/<int:id>', methods=['GET', 'POST'])
@@ -299,6 +307,7 @@ def edit_post(id):
 
     return redirect(url_for('sign_in'))
 
+
 @app.route('/follow/<int:id>')
 def follow(id):
     if 'user' in session:
@@ -310,6 +319,7 @@ def follow(id):
         return redirect(url_for('main'))
     else:
         return redirect(url_for('sign_in'))
+
 
 @app.route('/unfollow/<int:id>')
 def unfollow(id):
@@ -340,7 +350,8 @@ def following():
         follow_status = {}
         for author in users:
             # Check if the current user is following this author
-            is_following = db.session.query(Follow).filter_by(follower_id=current_user.id, followed_id=author.id).first() is not None
+            is_following = db.session.query(Follow).filter_by(follower_id=current_user.id,
+                                                              followed_id=author.id).first() is not None
             follow_status[author.id] = is_following
 
         print(f"Following -> {following}")  # Debugging
@@ -349,9 +360,11 @@ def following():
         print("Followed users:", [user.uname for user in followed_users])
         print("Followed posts:", posts)  # Debugging
 
-        return render_template('following.html', posts=posts, users=users, current_user=current_user, follow_status=follow_status)
+        return render_template('following.html', posts=posts, users=users, current_user=current_user,
+                               follow_status=follow_status)
     else:
         return redirect(url_for('sign_in'))
+
 
 @app.route('/datas')
 def datas():
@@ -368,8 +381,8 @@ def datas():
         print(following)
         print(following_posts)
 
-        return render_template('datas.html', following=following, following_posts=following_posts, users=users, posts=posts)
-
+        return render_template('datas.html', following=following, following_posts=following_posts, users=users,
+                               posts=posts)
 
 
 @app.route('/forgot-password', methods=['GET', 'POST'])
@@ -390,6 +403,7 @@ def forgot_password():
         else:
             flash('Email not found. Please check your email and try again.', 'danger')
     return render_template('forgot_password.html', form=form)
+
 
 @app.route('/reset-password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
@@ -412,6 +426,7 @@ def reset_password(token):
     else:
         flash('User not found', 'danger')
         return redirect(url_for('sign_in'))
+
 
 @app.route('/delete/<int:id>')
 def delete(id):
@@ -438,5 +453,6 @@ def delete(id):
             return redirect(url_for('sign_out'))
     return redirect(url_for('main'))
 
-if __name__ == '__main__':
-    app.run(debug=True)
+
+if __name__ == "__main__":
+    app.run()
